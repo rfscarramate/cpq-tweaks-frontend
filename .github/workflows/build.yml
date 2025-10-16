@@ -25,10 +25,13 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build with Gradle
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Verify build output
+        run: ls -R app/build/outputs/apk || echo "APK not found!"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SignifyCPQ_Release
+          name: SignifyCPQ_Debug
           path: app/build/outputs/apk/debug/*.apk
