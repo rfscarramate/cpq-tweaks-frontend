@@ -1,0 +1,40 @@
+name: Build and Release Android APK
+
+on:
+  push:
+    tags:
+      - "v*.*.*"   # Exemplo: v1.0.0
+
+jobs:
+  build:
+    name: Build APK and Create Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Grant execute permission for Gradle
+        run: chmod +x gradlew
+
+      - name: Build release APK
+        run: ./gradlew assembleRelease
+
+      - name: Upload release APK as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SignifyCPQ_Release
+          path: app/build/outputs/apk/release/*.apk
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: app/build/outputs/apk/release/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
