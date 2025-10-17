@@ -24,7 +24,7 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
-          gradle-version: 8.3   # <--- Aqui você define a versão que seu projeto suporta
+          gradle-version: 9.0.1   # <--- Aqui você define a versão que seu projeto suporta
           cache-enabled: true
 
       - name: Build with Gradle
