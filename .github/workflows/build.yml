@@ -2,9 +2,9 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "*" ]
   pull_request:
-    branches: [ main ]
+    branches: [ "*" ]
   workflow_dispatch:
 
 jobs:
@@ -12,29 +12,56 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout do repositório
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 2️⃣ Define ambiente (debug/release)
+      - name: Define build environment
+        id: set_env
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "CPQ_ENV=release" >> $GITHUB_ENV
+            echo "🔧 Ambiente configurado como RELEASE"
+          else
+            echo "CPQ_ENV=debug" >> $GITHUB_ENV
+            echo "🔧 Ambiente configurado como DEBUG"
+          fi
+
+      # 3️⃣ Injeta a variável CPQ_ENV no loader.js
+      - name: Inject CPQ_ENV into loader.js
+        run: |
+          echo "🔄 Injetando CPQ_ENV=${{ env.CPQ_ENV }} no loader.js"
+          sed -i "s|\${CPQ_ENV}|${{ env.CPQ_ENV }}|g" app/src/main/assets/loader.js || true
+
+      # 4️⃣ Configura o JDK 17
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
 
-      - name: Set up Gradle
+      # 5️⃣ Instala o Gradle 8.4 global com cache habilitado
+      - name: Set up Gradle 8.4 (global)
         uses: gradle/actions/setup-gradle@v3
         with:
-          gradle-version: 8.4   # <--- Aqui você define a versão que seu projeto suporta
+          gradle-version: 8.4
           cache-enabled: true
 
-      - name: Build with Gradle
-        run: gradle assembleDebug
+      # 6️⃣ Executa o build com Gradle global
+      - name: Build with global Gradle
+        run: |
+          echo "🚀 Iniciando build para ambiente: ${{ env.CPQ_ENV }}"
+          if [[ "${{ env.CPQ_ENV }}" == "release" ]]; then
+            gradle assembleRelease --stacktrace
+          else
+            gradle assembleDebug --stacktrace
+          fi
 
-      - name: Verify build output
-        run: ls -R app/build/outputs/apk || echo "APK not found!"
-
+      # 7️⃣ Publica o APK correspondente
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SignifyCPQ_Debug
-          path: app/build/outputs/apk/debug/*.apk
+          name: SignifyCPQ_${{ env.CPQ_ENV }}
+          path: |
+            ${{ env.CPQ_ENV == 'release' && 'app/build/outputs/apk/release/*.apk' || 'app/build/outputs/apk/debug/*.apk' }}
